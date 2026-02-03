@@ -230,7 +230,10 @@ export class VisionService {
       const operationsClient = this.client!.operationsClient
 
       const [operation] = await operationsClient.getOperation({
-        name: operationName,
+        toJSON(): { [p: string]: any } {
+          return {};
+        },
+        name: operationName
       })
 
       return {
