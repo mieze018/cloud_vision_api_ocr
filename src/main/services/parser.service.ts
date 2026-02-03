@@ -4,9 +4,30 @@
  */
 
 import { promises as fs } from 'fs'
-import type { VisionResponse } from '@shared/types'
+import type { VisionResponse, VisionPage, VisionSymbol } from '@shared/types'
 import { ErrorCode, AppError } from '@shared/types'
 import { logger } from '../utils/logger'
+
+/**
+ * BoundingBoxから高さを計算
+ */
+function getSymbolHeight(symbol: VisionSymbol): number {
+  if (!symbol.boundingBox?.vertices || symbol.boundingBox.vertices.length < 4) {
+    return 0
+  }
+  const vertices = symbol.boundingBox.vertices
+  // 縦書き・横書きどちらにも対応するため、y座標の差を使う
+  const minY = Math.min(...vertices.map(v => v.y || 0))
+  const maxY = Math.max(...vertices.map(v => v.y || 0))
+  return maxY - minY
+}
+
+/**
+ * ルビ除去の閾値
+ * Why: ルビは通常、本文の50%以下のサイズ。60%を閾値にすることで
+ *      誤検出を減らしつつ、多くのルビを検出できる。
+ */
+const RUBY_HEIGHT_RATIO_THRESHOLD = 0.6
 
 export class ParserService {
   /**
@@ -64,21 +85,29 @@ export class ParserService {
   /**
    * fullTextAnnotationからテキストを抽出
    * @param responses Vision API Response配列
+   * @param removeRuby ルビを除去するかどうか
    * @returns ページごとのテキスト配列
    */
-  extractText(responses: VisionResponse[]): string[] {
+  extractText(responses: VisionResponse[], removeRuby: boolean = false): string[] {
     try {
-      logger.info('テキスト抽出開始')
+      logger.info(`テキスト抽出開始 (ルビ除去: ${removeRuby ? 'ON' : 'OFF'})`)
 
       const pages: string[] = []
 
       for (const response of responses) {
         for (const item of response.responses) {
-          if (item.fullTextAnnotation?.text) {
-            pages.push(item.fullTextAnnotation.text)
-          } else {
-            // テキストが空のページ
+          if (!item.fullTextAnnotation) {
             pages.push('')
+            continue
+          }
+
+          if (removeRuby && item.fullTextAnnotation.pages) {
+            // ルビ除去モード: 詳細な位置情報を使って抽出
+            const text = this.extractTextWithRubyRemoval(item.fullTextAnnotation.pages)
+            pages.push(text)
+          } else {
+            // 通常モード: そのままテキストを使用
+            pages.push(item.fullTextAnnotation.text || '')
           }
         }
       }
@@ -93,6 +122,100 @@ export class ParserService {
         error
       )
     }
+  }
+
+  /**
+   * ルビを除去しながらテキストを抽出
+   * Why: 日本語PDFのOCR結果では、ルビ（振り仮名）が本文に混じることがある。
+   *      文字の高さを分析し、明らかに小さい文字（ルビ）を除去する。
+   *
+   * アルゴリズム:
+   * 1. 各ブロック内の文字高さの中央値を計算（本文サイズの推定）
+   * 2. 中央値の60%未満の高さの文字をルビとして除去
+   * 3. 改行・スペースの情報を維持しながらテキストを再構築
+   *
+   * Trade-off: 完璧な除去は難しい。小さい記号や注釈も除去される可能性がある。
+   */
+  private extractTextWithRubyRemoval(pages: VisionPage[]): string {
+    const textParts: string[] = []
+
+    for (const page of pages) {
+      if (!page.blocks) continue
+
+      for (const block of page.blocks) {
+        if (!block.paragraphs) continue
+
+        // ブロック内の全文字の高さを収集
+        const allHeights: number[] = []
+        for (const paragraph of block.paragraphs) {
+          if (!paragraph.words) continue
+          for (const word of paragraph.words) {
+            if (!word.symbols) continue
+            for (const symbol of word.symbols) {
+              const height = getSymbolHeight(symbol)
+              if (height > 0) {
+                allHeights.push(height)
+              }
+            }
+          }
+        }
+
+        // 高さの中央値を計算（本文サイズの推定）
+        const medianHeight = this.calculateMedian(allHeights)
+        const rubyThreshold = medianHeight * RUBY_HEIGHT_RATIO_THRESHOLD
+
+        logger.debug(`ブロック分析: 中央値=${medianHeight.toFixed(1)}, 閾値=${rubyThreshold.toFixed(1)}`)
+
+        // ルビを除去しながらテキストを抽出
+        for (const paragraph of block.paragraphs) {
+          if (!paragraph.words) continue
+
+          for (const word of paragraph.words) {
+            if (!word.symbols) continue
+
+            for (const symbol of word.symbols) {
+              const height = getSymbolHeight(symbol)
+
+              // 高さが0または閾値以上の場合は本文として採用
+              // 閾値未満の場合はルビとして除去
+              if (height === 0 || height >= rubyThreshold) {
+                textParts.push(symbol.text)
+              }
+
+              // 改行・スペースの処理
+              if (symbol.property?.detectedBreak) {
+                const breakType = symbol.property.detectedBreak.type
+                if (breakType === 'SPACE' || breakType === 'SURE_SPACE') {
+                  textParts.push(' ')
+                } else if (breakType === 'LINE_BREAK' || breakType === 'EOL_SURE_SPACE') {
+                  textParts.push('\n')
+                }
+              }
+            }
+          }
+        }
+
+        // ブロック間の改行
+        textParts.push('\n')
+      }
+    }
+
+    return textParts.join('')
+  }
+
+  /**
+   * 配列の中央値を計算
+   */
+  private calculateMedian(values: number[]): number {
+    if (values.length === 0) return 0
+
+    const sorted = [...values].sort((a, b) => a - b)
+    const mid = Math.floor(sorted.length / 2)
+
+    if (sorted.length % 2 === 0) {
+      return (sorted[mid - 1] + sorted[mid]) / 2
+    }
+    return sorted[mid]
   }
 
   /**

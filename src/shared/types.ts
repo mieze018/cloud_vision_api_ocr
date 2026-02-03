@@ -16,6 +16,13 @@ export interface AppConfig {
   defaultOutputDir: string
   /** ポーリング間隔（ミリ秒） */
   pollingIntervalMs: number
+  /**
+   * ルビ（振り仮名）を除去するかどうか
+   * Why: 日本語PDFのOCR結果にはルビが本文に混じって出力されることがあり、
+   *      可読性が低下する。このオプションでルビを除去できる。
+   * Trade-off: 完璧な除去は難しく、誤検出の可能性がある（実験的機能）
+   */
+  removeRuby?: boolean
 }
 
 // ============================================================================
@@ -84,12 +91,75 @@ export interface OperationStatus {
   metadata?: unknown
 }
 
-/** Vision API Response（簡略版） */
+/**
+ * Vision API BoundingBox（位置情報）
+ */
+export interface BoundingBox {
+  vertices: Array<{
+    x: number
+    y: number
+  }>
+}
+
+/**
+ * Vision API Symbol（1文字）
+ */
+export interface VisionSymbol {
+  text: string
+  boundingBox?: BoundingBox
+  property?: {
+    detectedBreak?: {
+      type: string // SPACE, LINE_BREAK, etc.
+    }
+  }
+}
+
+/**
+ * Vision API Word（単語）
+ */
+export interface VisionWord {
+  symbols: VisionSymbol[]
+  boundingBox?: BoundingBox
+}
+
+/**
+ * Vision API Paragraph（段落）
+ */
+export interface VisionParagraph {
+  words: VisionWord[]
+  boundingBox?: BoundingBox
+}
+
+/**
+ * Vision API Block（ブロック）
+ */
+export interface VisionBlock {
+  paragraphs: VisionParagraph[]
+  boundingBox?: BoundingBox
+  blockType?: string
+}
+
+/**
+ * Vision API Page（ページ）
+ */
+export interface VisionPage {
+  blocks: VisionBlock[]
+  width: number
+  height: number
+}
+
+/**
+ * Vision API FullTextAnnotation（詳細版）
+ */
+export interface FullTextAnnotation {
+  text: string
+  pages: VisionPage[]
+}
+
+/** Vision API Response（詳細版） */
 export interface VisionResponse {
   responses: Array<{
-    fullTextAnnotation?: {
-      text: string
-    }
+    fullTextAnnotation?: FullTextAnnotation
   }>
 }
 

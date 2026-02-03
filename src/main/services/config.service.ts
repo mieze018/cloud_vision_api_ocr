@@ -91,6 +91,7 @@ export class ConfigService {
       gcsBucketName: '',
       defaultOutputDir: join(homedir(), 'Documents'),
       pollingIntervalMs: 10000, // 10秒
+      removeRuby: false, // ルビ除去はデフォルトOFF
     }
   }
 

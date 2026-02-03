@@ -13,6 +13,7 @@ export function ConfigPanel() {
     gcsBucketName: '',
     defaultOutputDir: '',
     pollingIntervalMs: 10000,
+    removeRuby: false,
   })
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -25,7 +26,7 @@ export function ConfigPanel() {
     }
   }, [config])
 
-  const handleChange = (field: keyof AppConfig, value: string | number) => {
+  const handleChange = (field: keyof AppConfig, value: string | number | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     setSaveSuccess(false)
   }
@@ -122,6 +123,23 @@ export function ConfigPanel() {
           step="1000"
         />
         <small>Vision API処理状況の確認間隔（推奨: 10000ms = 10秒）</small>
+      </div>
+
+      <div className="form-group form-group-checkbox">
+        <label htmlFor="removeRuby" className="checkbox-label">
+          <input
+            type="checkbox"
+            id="removeRuby"
+            checked={formData.removeRuby ?? false}
+            onChange={(e) => handleChange('removeRuby', e.target.checked)}
+          />
+          <span>ルビ（振り仮名）を除去する</span>
+          <span className="experimental-badge">実験的</span>
+        </label>
+        <small>
+          日本語PDFのOCR結果からルビを除去します。
+          文字サイズを分析して小さい文字を除去するため、完璧ではありません。
+        </small>
       </div>
 
       <div className="form-actions">

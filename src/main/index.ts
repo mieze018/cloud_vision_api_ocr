@@ -289,7 +289,7 @@ async function runBatchOCRProcess(
     const responses = await parserService.parseVisionOutput(sortedFiles)
 
     sendProgressEvent('parse', 'Markdown形式に変換中...', 95)
-    const pages = parserService.extractText(responses)
+    const pages = parserService.extractText(responses, config.removeRuby ?? false)
     const markdown = parserService.convertToMarkdown(pages)
 
     // Step 7: Markdownファイルを保存
