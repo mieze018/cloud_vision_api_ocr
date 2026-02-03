@@ -1,13 +1,76 @@
 {
-  "name": "cloud_vision_api_ocr",
+  "name": "cloud-vision-ocr",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Google Cloud Vision APIを使用した大規模PDF OCRデスクトップアプリ",
+  "main": "dist-electron/main/index.js",
+  "author": "Your Name",
+  "license": "MIT",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "tsc && vite build && electron-builder",
+    "build:win": "npm run build -- --win",
+    "build:mac": "npm run build -- --mac",
+    "build:linux": "npm run build -- --linux",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "type-check": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "dependencies": {
+    "@google-cloud/storage": "^7.13.0",
+    "@google-cloud/vision": "^4.3.2",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "eslint": "^9.18.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vite-plugin-electron": "^0.28.10",
+    "vite-plugin-electron-renderer": "^0.14.6"
+  },
+  "build": {
+    "appId": "com.yourname.cloud-vision-ocr",
+    "productName": "Cloud Vision OCR",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-electron/**/*",
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "resources/icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "resources/icon.icns"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "resources/icon.png",
+      "category": "Utility"
+    }
+  }
 }

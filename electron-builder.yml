@@ -1,0 +1,25 @@
+appId: com.yourname.cloud-vision-ocr
+productName: Cloud Vision OCR
+directories:
+  output: release
+  buildResources: resources
+files:
+  - dist-electron/**/*
+  - dist/**/*
+  - package.json
+win:
+  target:
+    - nsis
+    - portable
+  icon: resources/icon.ico
+mac:
+  target:
+    - dmg
+    - zip
+  icon: resources/icon.icns
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: resources/icon.png
+  category: Utility

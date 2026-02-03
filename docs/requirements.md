@@ -3,8 +3,9 @@
 TypeScriptとNode.jsを使用した堅牢なデスクトップアプリケーションの設計と実装を行ってください。
 
 # Goal
-Google Cloud Vision APIを使用して、ローカルのPDFファイル（数百ページ規模）をOCRし、
+Google Cloud Vision APIを使用して、ローカルの画像やPDFファイル（数百ページ規模）をOCRし、
 テキストデータ（Markdown形式）としてローカルに保存するElectronアプリを作成したい。
+個人での利用を想定。
 
 # Requirements
 
