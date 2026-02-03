@@ -176,6 +176,7 @@ npm run dev
 ```
 
 ### ビルド（配布用）
+管理者権限で実行、releaseフォルダ内に作成される
 
 ```bash
 # Windows 向けビルド
