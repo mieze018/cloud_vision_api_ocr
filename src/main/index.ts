@@ -11,7 +11,7 @@ import type {AppConfig} from '@shared/types'
 import {AppError} from '@shared/types'
 import {ConfigService} from './services/config.service'
 import {GCSService} from './services/gcs.service'
-import {VisionService} from './services/vision.service'
+import {supportsBatchProcessing, VisionService} from './services/vision.service'
 import {ParserService} from './services/parser.service'
 import {logger} from './utils/logger'
 
@@ -86,8 +86,7 @@ function createWindow() {
 ipcMain.handle('get-config', async () => {
   try {
     logger.info('設定取得リクエスト')
-    const config = await configService.loadConfig()
-    return config
+    return await configService.loadConfig()
   } catch (error) {
     logger.error('設定取得失敗', error)
     throw error
@@ -186,6 +185,28 @@ async function runOCRProcess(
   config: AppConfig,
   startTime: number
 ): Promise<void> {
+  const fileName = basename(filePath)
+
+  // ファイル形式によって処理を分岐
+  // Why: Vision APIの非同期バッチ処理はPDF/GIF/TIFFのみ対応
+  //      JPEG/PNGは同期処理を使用する必要がある
+  if (supportsBatchProcessing(filePath)) {
+    await runBatchOCRProcess(filePath, fileName, config, startTime)
+  } else {
+    await runSyncOCRProcess(filePath, fileName, config, startTime)
+  }
+}
+
+/**
+ * 非同期バッチOCR処理（PDF, GIF, TIFF 用）
+ * Why: 大容量ファイル（数百ページのPDF等）を処理するため、GCS経由の非同期処理を使用
+ */
+async function runBatchOCRProcess(
+    filePath: string,
+    fileName: string,
+    config: AppConfig,
+    startTime: number
+): Promise<void> {
   let tempDir: string | null = null
 
   try {
@@ -204,8 +225,7 @@ async function runOCRProcess(
     }
 
     // Step 2: GCSにアップロード
-    sendProgressEvent('upload', 'PDFファイルをGCSにアップロード中...', 10)
-    const fileName = basename(filePath)
+    sendProgressEvent('upload', 'ファイルをGCSにアップロード中...', 10)
     const gcsInputPath = `input/${Date.now()}-${fileName}`
     const gcsOutputPrefix = `output/${Date.now()}/`
 
@@ -274,7 +294,7 @@ async function runOCRProcess(
 
     // Step 7: Markdownファイルを保存
     sendProgressEvent('save', 'ファイルを保存中...', 97)
-    const outputFileName = fileName.replace('.pdf', '.md')
+    const outputFileName = fileName.replace(/\.(pdf|gif|tiff|tif)$/i, '.md')
     const outputPath = join(config.defaultOutputDir, outputFileName)
     await parserService.saveMarkdown(markdown, outputPath)
     sendProgressEvent('save', '保存完了', 100)
@@ -286,7 +306,7 @@ async function runOCRProcess(
     sendCompleteEvent(outputPath, pageCount, processingTime)
 
     logger.info('='.repeat(80))
-    logger.info('OCR処理正常完了')
+    logger.info('OCR処理正常完了（バッチ処理）')
     logger.info(`出力先: ${outputPath}`)
     logger.info(`ページ数: ${pageCount}`)
     logger.info(`処理時間: ${Math.floor(processingTime / 1000)}秒`)
@@ -301,6 +321,58 @@ async function runOCRProcess(
         logger.warn('一時ディレクトリ削除失敗', error)
       }
     }
+  }
+}
+
+/**
+ * 同期OCR処理（JPEG, PNG 用）
+ * Why: Vision APIの非同期バッチ処理はJPEG/PNGに対応していないため、
+ *      同期処理（documentTextDetection）を使用する
+ * Trade-off: GCSを経由せず直接処理できるが、大容量ファイルには向かない
+ */
+async function runSyncOCRProcess(
+    filePath: string,
+    fileName: string,
+    config: AppConfig,
+    startTime: number
+): Promise<void> {
+  try {
+    // Step 1: 初期化
+    sendProgressEvent('upload', 'Vision API初期化中...', 0)
+    await visionService.initialize(config.gcpKeyfilePath)
+    sendProgressEvent('upload', '初期化完了', 20)
+
+    // Step 2: Vision API同期OCRリクエスト
+    sendProgressEvent('api-request', 'Vision APIにOCRリクエスト送信中...', 30)
+    const text = await visionService.syncAnnotateImage(filePath)
+    sendProgressEvent('api-request', 'OCR処理完了', 80)
+
+    // Step 3: Markdown生成
+    sendProgressEvent('parse', 'Markdown形式に変換中...', 85)
+    const markdown = parserService.convertToMarkdown([text])
+
+    // Step 4: Markdownファイルを保存
+    sendProgressEvent('save', 'ファイルを保存中...', 95)
+    const outputFileName = fileName.replace(/\.(jpg|jpeg|png)$/i, '.md')
+    const outputPath = join(config.defaultOutputDir, outputFileName)
+    await parserService.saveMarkdown(markdown, outputPath)
+    sendProgressEvent('save', '保存完了', 100)
+
+    // 完了イベント送信
+    const processingTime = Date.now() - startTime
+    const pageCount = 1 // 単一画像は1ページ
+
+    sendCompleteEvent(outputPath, pageCount, processingTime)
+
+    logger.info('='.repeat(80))
+    logger.info('OCR処理正常完了（同期処理）')
+    logger.info(`出力先: ${outputPath}`)
+    logger.info(`ページ数: ${pageCount}`)
+    logger.info(`処理時間: ${Math.floor(processingTime / 1000)}秒`)
+    logger.info('='.repeat(80))
+  } catch (error) {
+    logger.error('同期OCR処理失敗', error)
+    throw error
   }
 }
 

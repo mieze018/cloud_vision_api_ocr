@@ -36,6 +36,17 @@ function getMimeType(filePath: string): string {
     return mimeType
 }
 
+/**
+ * 非同期バッチ処理がサポートされているファイル形式かチェック
+ * Why: Vision APIの非同期バッチ処理（asyncBatchAnnotateFiles）は
+ *      PDF, GIF, TIFF のみサポート。JPEG/PNGは同期処理が必要。
+ */
+export function supportsBatchProcessing(filePath: string): boolean {
+  const ext = extname(filePath).toLowerCase()
+  const batchSupportedExtensions = ['.pdf', '.gif', '.tiff', '.tif']
+  return batchSupportedExtensions.includes(ext)
+}
+
 export class VisionService {
   private client: ImageAnnotatorClient | null = null
   private initialized = false
@@ -250,6 +261,48 @@ export class VisionService {
       throw new AppError(
         ErrorCode.GCP_AUTH_FAILED,
         'Vision APIが初期化されていません。先にinitialize()を呼び出してください。'
+      )
+    }
+  }
+
+  /**
+   * 単一画像の同期OCR処理
+   * Why: JPEG/PNGは非同期バッチ処理（asyncBatchAnnotateFiles）に対応していないため、
+   *      同期処理（documentTextDetection）を使用する
+   * Trade-off: GCS不要で手軽だが、大容量ファイルには向かない
+   *
+   * @param imagePath ローカル画像ファイルのパス
+   * @returns OCR結果のテキスト
+   */
+  async syncAnnotateImage(imagePath: string): Promise<string> {
+    this.ensureInitialized()
+
+    try {
+      logger.info(`Vision API同期OCRリクエスト開始`)
+      logger.info(`  入力: ${imagePath}`)
+
+      const [result] = await this.client!.documentTextDetection(imagePath)
+
+      if (!result.fullTextAnnotation?.text) {
+        logger.warn('テキストが検出されませんでした')
+        return ''
+      }
+
+      const text = result.fullTextAnnotation.text
+      logger.info(`Vision API同期OCR完了: ${text.length}文字を抽出`)
+
+      return text
+    } catch (error) {
+      logger.error('Vision API同期OCRリクエスト失敗', error)
+
+      if (error instanceof AppError) {
+        throw error
+      }
+
+      throw new AppError(
+          ErrorCode.API_REQUEST_FAILED,
+          'Vision API同期OCRリクエストに失敗しました',
+          error
       )
     }
   }
