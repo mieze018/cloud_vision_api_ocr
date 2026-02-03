@@ -3,11 +3,11 @@
  * アプリケーション設定の読み込み・保存を行う
  */
 
-import { promises as fs } from 'fs'
-import { join } from 'path'
-import { homedir } from 'os'
-import type { AppConfig } from '@shared/types'
-import { ErrorCode, AppError } from '@shared/types'
+import {promises as fs} from 'fs'
+import {join} from 'path'
+import {homedir} from 'os'
+import type {AppConfig} from '@shared/types'
+import {AppError, ErrorCode} from '@shared/types'
 
 export class ConfigService {
   private configDir: string
@@ -92,6 +92,7 @@ export class ConfigService {
       defaultOutputDir: join(homedir(), 'Documents'),
       pollingIntervalMs: 10000, // 10秒
       removeRuby: false, // ルビ除去はデフォルトOFF
+        normalizeLineBreaks: false, // 改行整形はデフォルトOFF
     }
   }
 

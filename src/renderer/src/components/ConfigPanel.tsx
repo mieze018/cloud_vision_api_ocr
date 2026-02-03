@@ -2,9 +2,9 @@
  * 設定パネルコンポーネント
  */
 
-import { useState, useEffect } from 'react'
-import { useConfig } from '../contexts/ConfigContext'
-import type { AppConfig } from '@shared/types'
+import {useEffect, useState} from 'react'
+import {useConfig} from '../contexts/ConfigContext'
+import type {AppConfig} from '@shared/types'
 
 export function ConfigPanel() {
   const { config, loading, error, updateConfig } = useConfig()
@@ -14,6 +14,7 @@ export function ConfigPanel() {
     defaultOutputDir: '',
     pollingIntervalMs: 10000,
     removeRuby: false,
+      normalizeLineBreaks: false,
   })
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -141,6 +142,23 @@ export function ConfigPanel() {
           文字サイズを分析して小さい文字を除去するため、完璧ではありません。
         </small>
       </div>
+
+        <div className="form-group form-group-checkbox">
+            <label htmlFor="normalizeLineBreaks" className="checkbox-label">
+                <input
+                    type="checkbox"
+                    id="normalizeLineBreaks"
+                    checked={formData.normalizeLineBreaks ?? false}
+                    onChange={(e) => handleChange('normalizeLineBreaks', e.target.checked)}
+                />
+                <span>改行を段落単位で整形する</span>
+                <span className="experimental-badge">実験的</span>
+            </label>
+            <small>
+                OCR結果の改行を段落単位で整形します。
+                文章の途中の不自然な改行を除去し、段落間は空行で区切ります。
+            </small>
+        </div>
 
       <div className="form-actions">
         <button onClick={handleSave} disabled={saving} className="btn-primary">
