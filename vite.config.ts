@@ -11,13 +11,18 @@ export default defineConfig({
     electron([
       {
         // Main process entry
-        entry: 'src/main/index.ts',
+        entry: resolve(__dirname, 'src/main/index.ts'),
         onstart({ startup }) {
           startup()
         },
         vite: {
+          resolve: {
+            alias: {
+              '@shared': resolve(__dirname, './src/shared')
+            }
+          },
           build: {
-            outDir: 'dist-electron/main',
+            outDir: resolve(__dirname, 'dist-electron/main'),
             rollupOptions: {
               external: [
                 '@google-cloud/storage',
@@ -30,13 +35,13 @@ export default defineConfig({
       },
       {
         // Preload script
-        entry: 'src/main/preload.ts',
+        entry: resolve(__dirname, 'src/main/preload.ts'),
         onstart({ reload }) {
           reload()
         },
         vite: {
           build: {
-            outDir: 'dist-electron/preload'
+            outDir: resolve(__dirname, 'dist-electron/preload')
           }
         }
       }
