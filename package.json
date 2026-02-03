@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Google Cloud Vision APIを使用した大規模PDF OCRデスクトップアプリ",
   "main": "dist-electron/main/index.js",
-  "author": "Your Name",
+  "author": "mieze018",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
