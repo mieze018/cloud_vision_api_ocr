@@ -2,7 +2,7 @@
  * ファイルドロップゾーンコンポーネント
  */
 
-import { useState, useCallback } from 'react'
+import {useCallback, useState} from 'react'
 
 interface FileDropzoneProps {
   onFileSelect: (file: File) => void
@@ -44,8 +44,12 @@ export function FileDropzone({ onFileSelect, disabled = false }: FileDropzonePro
       const pdfFile = files.find((f) => f.name.toLowerCase().endsWith('.pdf'))
 
       if (pdfFile) {
-        setSelectedFile(pdfFile)
-        onFileSelect(pdfFile)
+          // Why: contextIsolation環境下ではFile.pathが存在しないため、
+          //      webUtils.getPathForFile()経由でパスを取得する
+          const filePath = window.electronAPI.getFilePath(pdfFile)
+          const fileWithPath = Object.assign(pdfFile, {path: filePath})
+          setSelectedFile(fileWithPath)
+          onFileSelect(fileWithPath)
       } else {
         alert('PDFファイルを選択してください')
       }

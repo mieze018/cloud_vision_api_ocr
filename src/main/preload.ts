@@ -3,8 +3,8 @@
  * Renderer Process と Main Process の安全なブリッジ
  */
 
-import { contextBridge, ipcRenderer } from 'electron'
-import type { AppConfig, ProgressEvent, ErrorEvent, CompleteEvent } from '@shared/types'
+import {contextBridge, ipcRenderer, webUtils} from 'electron'
+import type {AppConfig, CompleteEvent, ErrorEvent, ProgressEvent} from '@shared/types'
 
 // Electron API定義
 const electronAPI = {
@@ -45,6 +45,16 @@ const electronAPI = {
    */
   openFolder: (path: string) => {
     return ipcRenderer.invoke('open-folder', path)
+  },
+
+  /**
+   * Fileオブジェクトからファイルパスを取得
+   * Why: ドラッグ＆ドロップで取得したFileオブジェクトには
+   *      contextIsolation環境下で.pathプロパティがないため、
+   *      webUtils.getPathForFile()を使用してパスを取得する
+   */
+  getFilePath: (file: File): string => {
+    return webUtils.getPathForFile(file)
   },
 
   // ============================================================================

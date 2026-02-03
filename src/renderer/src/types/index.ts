@@ -4,11 +4,11 @@
 
 import type {
   AppConfig,
-  ProgressEvent,
-  ErrorEvent,
   CompleteEvent,
-  SelectFileResponse,
+  ErrorEvent,
   OpenFolderResponse,
+  ProgressEvent,
+  SelectFileResponse,
 } from '@shared/types'
 
 // ============================================================================
@@ -48,6 +48,7 @@ export interface ElectronAPI {
   saveConfig: (config: AppConfig) => Promise<{ success: boolean }>
   selectFile: () => Promise<SelectFileResponse>
   openFolder: (path: string) => Promise<OpenFolderResponse>
+  getFilePath: (file: File) => string
 
   // Main → Renderer へのイベント購読
   onProgress: (callback: (event: ProgressEvent) => void) => () => void
