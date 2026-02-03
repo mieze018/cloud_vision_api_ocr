@@ -3,17 +3,17 @@
  * Electronアプリのメインプロセス
  */
 
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
-import { join, basename } from 'path'
-import { tmpdir } from 'os'
-import { promises as fs } from 'fs'
-import type { AppConfig } from '@shared/types'
-import { AppError } from '@shared/types'
-import { ConfigService } from './services/config.service'
-import { GCSService } from './services/gcs.service'
-import { VisionService } from './services/vision.service'
-import { ParserService } from './services/parser.service'
-import { logger } from './utils/logger'
+import {app, BrowserWindow, dialog, ipcMain, shell} from 'electron'
+import {basename, join} from 'path'
+import {tmpdir} from 'os'
+import {promises as fs} from 'fs'
+import type {AppConfig} from '@shared/types'
+import {AppError} from '@shared/types'
+import {ConfigService} from './services/config.service'
+import {GCSService} from './services/gcs.service'
+import {VisionService} from './services/vision.service'
+import {ParserService} from './services/parser.service'
+import {logger} from './utils/logger'
 
 // ============================================================================
 // グローバル変数
@@ -115,7 +115,11 @@ ipcMain.handle('select-file', async () => {
   try {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
-      filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+        filters: [
+            {name: 'PDF / 画像ファイル', extensions: ['pdf', 'jpg', 'jpeg', 'png', 'tiff', 'tif', 'gif']},
+            {name: 'PDF', extensions: ['pdf']},
+            {name: '画像', extensions: ['jpg', 'jpeg', 'png', 'tiff', 'tif', 'gif']},
+        ],
     })
 
     return {

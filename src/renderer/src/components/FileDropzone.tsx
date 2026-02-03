@@ -4,6 +4,20 @@
 
 import {useCallback, useState} from 'react'
 
+/**
+ * サポートするファイル拡張子
+ * Why: Vision APIがサポートするPDF/画像形式に対応
+ */
+const SUPPORTED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.tif', '.gif']
+
+/**
+ * ファイルがサポートされている形式かチェック
+ */
+function isSupportedFile(fileName: string): boolean {
+    const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'))
+    return SUPPORTED_EXTENSIONS.includes(ext)
+}
+
 interface FileDropzoneProps {
   onFileSelect: (file: File) => void
   disabled?: boolean
@@ -41,17 +55,17 @@ export function FileDropzone({ onFileSelect, disabled = false }: FileDropzonePro
       if (disabled) return
 
       const files = Array.from(e.dataTransfer.files)
-      const pdfFile = files.find((f) => f.name.toLowerCase().endsWith('.pdf'))
+        const supportedFile = files.find((f) => isSupportedFile(f.name))
 
-      if (pdfFile) {
+        if (supportedFile) {
           // Why: contextIsolation環境下ではFile.pathが存在しないため、
           //      webUtils.getPathForFile()経由でパスを取得する
-          const filePath = window.electronAPI.getFilePath(pdfFile)
-          const fileWithPath = Object.assign(pdfFile, {path: filePath})
+            const filePath = window.electronAPI.getFilePath(supportedFile)
+            const fileWithPath = Object.assign(supportedFile, {path: filePath})
           setSelectedFile(fileWithPath)
           onFileSelect(fileWithPath)
       } else {
-        alert('PDFファイルを選択してください')
+            alert('PDF または画像ファイル（JPEG, PNG, TIFF, GIF）を選択してください')
       }
     },
     [disabled, onFileSelect]
@@ -105,14 +119,15 @@ export function FileDropzone({ onFileSelect, disabled = false }: FileDropzonePro
           ) : (
             <>
               <div className="upload-icon">📁</div>
-              <p>PDFファイルをドラッグ＆ドロップ</p>
+                <p>PDF / 画像ファイルをドラッグ＆ドロップ</p>
+                <p className="supported-formats">対応形式: PDF, JPEG, PNG, TIFF, GIF</p>
               <p className="or-text">または</p>
               <button onClick={handleBrowse} disabled={disabled} className="btn-primary">
                 ファイルを選択
               </button>
               <input
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif,.gif"
                 onChange={handleFileInput}
                 style={{ display: 'none' }}
                 disabled={disabled}

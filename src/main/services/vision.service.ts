@@ -3,10 +3,38 @@
  * 非同期バッチOCR処理とポーリングを行う
  */
 
-import { ImageAnnotatorClient } from '@google-cloud/vision'
-import type { OperationStatus } from '@shared/types'
-import { ErrorCode, AppError } from '@shared/types'
-import { logger } from '../utils/logger'
+import {ImageAnnotatorClient} from '@google-cloud/vision'
+import {extname} from 'path'
+import type {OperationStatus} from '@shared/types'
+import {AppError, ErrorCode} from '@shared/types'
+import {logger} from '../utils/logger'
+
+/**
+ * ファイル拡張子からMIMEタイプを取得
+ * Why: Vision APIは入力ファイルのMIMEタイプを明示的に指定する必要があるため、
+ *      拡張子から適切なMIMEタイプを判定する
+ */
+function getMimeType(filePath: string): string {
+    const ext = extname(filePath).toLowerCase()
+    const mimeTypes: Record<string, string> = {
+        '.pdf': 'application/pdf',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.tiff': 'image/tiff',
+        '.tif': 'image/tiff',
+        '.gif': 'image/gif',
+    }
+
+    const mimeType = mimeTypes[ext]
+    if (!mimeType) {
+        throw new AppError(
+            ErrorCode.API_REQUEST_FAILED,
+            `サポートされていないファイル形式です: ${ext}`
+        )
+    }
+    return mimeType
+}
 
 export class VisionService {
   private client: ImageAnnotatorClient | null = null
@@ -48,14 +76,21 @@ export class VisionService {
    * @param inputUri GCS入力URI（例: gs://bucket/input/file.pdf）
    * @param outputUri GCS出力URI（例: gs://bucket/output/）
    * @returns Operation名
+   *
+   * Why: Vision APIの非同期バッチ処理は大容量ファイル（PDF/画像）に対応するため使用
+   * Trade-off: 同期処理より複雑だが、数百ページのPDFも処理可能
    */
   async asyncBatchAnnotate(inputUri: string, outputUri: string): Promise<string> {
     this.ensureInitialized()
 
     try {
+        // Why: URIからファイル名を抽出してMIMEタイプを判定
+        const mimeType = getMimeType(inputUri)
+
       logger.info(`Vision API非同期バッチOCRリクエスト開始`)
       logger.info(`  入力: ${inputUri}`)
       logger.info(`  出力: ${outputUri}`)
+        logger.info(`  MIMEタイプ: ${mimeType}`)
 
       const request = {
         requests: [
@@ -64,7 +99,7 @@ export class VisionService {
               gcsSource: {
                 uri: inputUri,
               },
-              mimeType: 'application/pdf',
+                mimeType,
             },
             features: [
               {
