@@ -6,6 +6,7 @@ import type {
   AppConfig,
   CompleteEvent,
   ErrorEvent,
+  OCROptions,
   OpenFolderResponse,
   ProgressEvent,
   SelectFileResponse,
@@ -43,7 +44,7 @@ export interface OCRProcessState {
 
 export interface ElectronAPI {
   // Renderer → Main への呼び出し
-  startOCR: (filePath: string, config: AppConfig) => Promise<{ success: boolean }>
+  startOCR: (filePath: string, config: AppConfig, options?: OCROptions) => Promise<{ success: boolean }>
   getConfig: () => Promise<AppConfig>
   saveConfig: (config: AppConfig) => Promise<{ success: boolean }>
   selectFile: () => Promise<SelectFileResponse>
@@ -81,7 +82,7 @@ export interface UseOCRProcessReturn {
   /** 完了情報 */
   result: CompleteEvent | null
   /** OCR処理開始 */
-  startOCR: (file: File) => Promise<void>
+  startOCR: (file: File, options?: OCROptions) => Promise<void>
   /** 状態リセット */
   reset: () => void
 }

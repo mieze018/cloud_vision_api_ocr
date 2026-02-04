@@ -4,7 +4,7 @@
  */
 
 import {contextBridge, ipcRenderer, webUtils} from 'electron'
-import type {AppConfig, CompleteEvent, ErrorEvent, ProgressEvent} from '@shared/types'
+import type {AppConfig, CompleteEvent, ErrorEvent, OCROptions, ProgressEvent} from '@shared/types'
 
 // Electron API定義
 const electronAPI = {
@@ -15,8 +15,8 @@ const electronAPI = {
   /**
    * OCR処理を開始
    */
-  startOCR: (filePath: string, config: AppConfig) => {
-    return ipcRenderer.invoke('start-ocr', filePath, config)
+  startOCR: (filePath: string, config: AppConfig, options?: OCROptions) => {
+    return ipcRenderer.invoke('start-ocr', filePath, config, options)
   },
 
   /**

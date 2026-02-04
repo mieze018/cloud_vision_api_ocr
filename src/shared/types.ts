@@ -175,12 +175,33 @@ export interface VisionResponse {
 // IPC通信
 // ============================================================================
 
+/**
+ * OCR処理オプション（ファイルアップロード時に指定）
+ * Why: 設定画面（AppConfig）とは別に、ファイルごとに指定したいオプションを管理
+ */
+export interface OCROptions {
+  /**
+   * 見開きページを左右に分割するかどうか
+   * Why: 見開きスキャンされたPDFは、縦書きテキストが正しく認識されないことがある。
+   *      左右に分割することで精度向上を図る。
+   */
+  splitSpread?: boolean
+  /**
+   * 分割時の読み取り順序
+   * true: 右→左（日本語縦書き用）
+   * false: 左→右（横書き・英語用）
+   */
+  rightToLeft?: boolean
+}
+
 /** OCR開始リクエスト */
 export interface StartOCRRequest {
   /** PDFファイルパス */
   filePath: string
   /** アプリ設定 */
   config: AppConfig
+  /** OCR処理オプション */
+  options?: OCROptions
 }
 
 /** OCR開始レスポンス */

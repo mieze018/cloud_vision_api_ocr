@@ -287,6 +287,74 @@ body {
   font-size: 14px;
 }
 
+.supported-formats {
+  color: #888;
+  font-size: 12px;
+}
+
+/* 見開き分割オプション */
+.spread-options {
+  width: 100%;
+  max-width: 320px;
+  margin: 16px 0;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  text-align: left;
+}
+
+.spread-options .checkbox-label,
+.spread-options .radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.spread-options .checkbox-label:last-child,
+.spread-options .radio-label:last-child {
+  margin-bottom: 0;
+}
+
+.spread-options input[type="checkbox"],
+.spread-options input[type="radio"] {
+  cursor: pointer;
+}
+
+.spread-direction {
+  margin-top: 12px;
+  padding-left: 8px;
+  border-left: 3px solid #667eea;
+}
+
+.spread-direction .radio-label {
+  font-size: 13px;
+  color: #555;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.badge.experimental {
+  background: #ffc107;
+  color: #333;
+}
+
+/* ファイルアクションボタン */
+.file-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
 /* ============================================================================
    Progress Log
    ============================================================================ */

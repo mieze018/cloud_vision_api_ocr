@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import type { ProgressEvent, ErrorEvent, CompleteEvent } from '@shared/types'
+import type { ProgressEvent, ErrorEvent, CompleteEvent, OCROptions } from '@shared/types'
 import type { OCRStatus, UseOCRProcessReturn } from '../types'
 import { useConfig } from '../contexts/ConfigContext'
 
@@ -17,7 +17,7 @@ export function useOCRProcess(): UseOCRProcessReturn {
 
   // OCR処理開始
   const startOCR = useCallback(
-    async (file: File) => {
+    async (file: File, options?: OCROptions) => {
       if (!config) {
         setError('設定が読み込まれていません')
         return
@@ -41,8 +41,8 @@ export function useOCRProcess(): UseOCRProcessReturn {
         setError(null)
         setResult(null)
 
-        // OCR開始
-        const response = await window.electronAPI.startOCR(file.path, config)
+        // OCR開始（オプションも渡す）
+        const response = await window.electronAPI.startOCR(file.path, config, options)
 
         if (!response.success) {
           throw new Error('OCR処理の開始に失敗しました')

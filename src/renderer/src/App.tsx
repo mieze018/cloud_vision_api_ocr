@@ -3,6 +3,7 @@
  */
 
 import { useState } from 'react'
+import type { OCROptions } from '@shared/types'
 import { ConfigPanel } from './components/ConfigPanel'
 import { FileDropzone } from './components/FileDropzone'
 import { ProgressLog } from './components/ProgressLog'
@@ -14,8 +15,8 @@ export function App() {
   const [showConfig, setShowConfig] = useState(false)
   const { status, progress, error, result, startOCR, reset } = useOCRProcess()
 
-  const handleFileSelect = async (file: File) => {
-    await startOCR(file)
+  const handleFileSelect = async (file: File, options: OCROptions) => {
+    await startOCR(file, options)
   }
 
   const handleReset = () => {

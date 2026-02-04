@@ -7,12 +7,13 @@ import {app, BrowserWindow, dialog, ipcMain, shell} from 'electron'
 import {basename, join} from 'path'
 import {tmpdir} from 'os'
 import {promises as fs} from 'fs'
-import type {AppConfig} from '@shared/types'
+import type {AppConfig, OCROptions} from '@shared/types'
 import {AppError} from '@shared/types'
 import {ConfigService} from './services/config.service'
 import {GCSService} from './services/gcs.service'
 import {supportsBatchProcessing, VisionService} from './services/vision.service'
 import {ParserService} from './services/parser.service'
+import {splitSpreadPdf, cleanupTempPdf} from './services/pdf-split.service'
 import {logger} from './utils/logger'
 
 // ============================================================================
@@ -150,20 +151,23 @@ ipcMain.handle('open-folder', async (_event, path: string) => {
 /**
  * OCR処理開始
  */
-ipcMain.handle('start-ocr', async (_event, filePath: string, config: AppConfig) => {
+ipcMain.handle('start-ocr', async (_event, filePath: string, config: AppConfig, options?: OCROptions) => {
   const startTime = Date.now()
 
   try {
     logger.info('='.repeat(80))
     logger.info('OCR処理開始')
     logger.info(`ファイル: ${filePath}`)
+    if (options?.splitSpread) {
+      logger.info(`見開き分割: 有効 (${options.rightToLeft ? '右→左' : '左→右'})`)
+    }
     logger.info('='.repeat(80))
 
     // ファイル存在確認
     await fs.access(filePath)
 
     // OCR処理実行
-    await runOCRProcess(filePath, config, startTime)
+    await runOCRProcess(filePath, config, startTime, options)
 
     return { success: true }
   } catch (error) {
@@ -183,17 +187,36 @@ ipcMain.handle('start-ocr', async (_event, filePath: string, config: AppConfig) 
 async function runOCRProcess(
   filePath: string,
   config: AppConfig,
-  startTime: number
+  startTime: number,
+  options?: OCROptions
 ): Promise<void> {
   const fileName = basename(filePath)
+  let processFilePath = filePath
+  let tempSplitPdf: string | null = null
 
-  // ファイル形式によって処理を分岐
-  // Why: Vision APIの非同期バッチ処理はPDF/GIF/TIFFのみ対応
-  //      JPEG/PNGは同期処理を使用する必要がある
-  if (supportsBatchProcessing(filePath)) {
-    await runBatchOCRProcess(filePath, fileName, config, startTime)
-  } else {
-    await runSyncOCRProcess(filePath, fileName, config, startTime)
+  try {
+    // 見開き分割が有効な場合、PDFを事前に分割
+    // Why: 見開きスキャンされたPDFは縦書きテキストが正しく認識されないことがある
+    if (options?.splitSpread && filePath.toLowerCase().endsWith('.pdf')) {
+      sendProgressEvent('upload', '見開きPDFを分割中...', 0)
+      tempSplitPdf = await splitSpreadPdf(filePath, options.rightToLeft ?? true)
+      processFilePath = tempSplitPdf
+      sendProgressEvent('upload', '見開き分割完了', 5)
+    }
+
+    // ファイル形式によって処理を分岐
+    // Why: Vision APIの非同期バッチ処理はPDF/GIF/TIFFのみ対応
+    //      JPEG/PNGは同期処理を使用する必要がある
+    if (supportsBatchProcessing(processFilePath)) {
+      await runBatchOCRProcess(processFilePath, fileName, config, startTime)
+    } else {
+      await runSyncOCRProcess(processFilePath, fileName, config, startTime)
+    }
+  } finally {
+    // 一時分割PDFファイルを削除
+    if (tempSplitPdf) {
+      await cleanupTempPdf(tempSplitPdf)
+    }
   }
 }
 
