@@ -8,9 +8,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
-    "build:win": "npm run build -- --win",
-    "build:mac": "npm run build -- --mac",
-    "build:linux": "npm run build -- --linux",
+    "build:win": "bun run build -- --win",
+    "build:mac": "bun run build -- --mac",
+    "build:linux": "bun run build -- --linux",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit"

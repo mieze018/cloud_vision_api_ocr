@@ -170,10 +170,10 @@ git clone <repository-url>
 cd cloud_vision_api_ocr
 
 # 依存関係をインストール
-npm install
+bun install
 
 # 開発モードで起動
-npm run dev
+bun run dev
 ```
 
 ### ビルド（配布用）
@@ -181,13 +181,13 @@ npm run dev
 
 ```bash
 # Windows 向けビルド
-npm run build:win
+bun run build:win
 
 # macOS 向けビルド
-npm run build:mac
+bun run build:mac
 
 # Linux 向けビルド
-npm run build:linux
+bun run build:linux
 ```
 
 ---
